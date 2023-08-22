@@ -6,6 +6,8 @@ const {
 } = require('@apollo/client')
 const fetch = require('cross-fetch')
 const fs = require('fs')
+const sqlite3 = require('sqlite3').verbose()
+let db = new sqlite3.Database('./db/prices.db')
 
 const UNISWAP_SUBGRAPH_ENDPOINT =
   'https://api.thegraph.com/subgraphs/name/ianlapham/arbitrum-minimal'
@@ -45,7 +47,7 @@ const client = new ApolloClient({
   cache
 })
 
-const startTime = 1690300000
+const startTime = 1685600000
 
 async function fetchPriceRange(timestamp) {
   const data = await client.query({
