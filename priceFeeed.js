@@ -4,10 +4,8 @@ const {
   HttpLink,
   gql
 } = require('@apollo/client')
-const fetch = require('cross-fetch');
-const { BigNumber } = require('ethers');
-const fs = require('fs')
-const { AsyncDatabase } = require("promised-sqlite3");
+const { BigNumber } = require('ethers')
+const { AsyncDatabase } = require("promised-sqlite3")
 
 const UNISWAP_SUBGRAPH_ENDPOINT =
   'https://api.thegraph.com/subgraphs/name/ianlapham/arbitrum-minimal'
@@ -49,9 +47,11 @@ const client = new ApolloClient({
 
 const startTime = 1675000000
 const poolAddress = '0xc31e54c7a869b9fcbecc14363cf510d1c41fa443'
+const X96 = BigNumber.from(2).pow(96)
 
 async function fetchPriceRange(timestamp) {
   const data = await client.query({
+    fetchPolicy: 'no-cache',
     query: SWAP_QUERY,
     variables: {
       first: 1000,
@@ -93,12 +93,10 @@ async function start() {
 
   await db.run(`
   CREATE TABLE IF NOT EXISTS prices(
-    id varchar(96) PRIMARY KEY,
+    id integer PRIMARY KEY,
     pool_id integer,
     timestamp integer,
-    amount0 double,
-    amount1 double,
-    sqrt_price varchar(48),
+    sqrt_price integer,
     FOREIGN KEY (pool_id)
        REFERENCES pools (pool_id) 
   )
@@ -128,13 +126,16 @@ async function start() {
     }
 
     for (let d of data) {
-      await db.run('INSERT INTO prices(id, pool_id, timestamp, amount0, amount1, sqrt_price) VALUES(?, ?, ?, ?, ?, ?)', [
-        d.id,
+      const ts = Number(d.ts)
+      const id = Math.floor(ts / 60)
+      const sqrtPrice = d.sqrtPriceX96.mul('1000000000000').div(X96)
+
+      await db.run('INSERT INTO prices(id, pool_id, timestamp, sqrt_price) VALUES(?, ?, ?, ?) ON CONFLICT(id) do update set sqrt_price = ?', [
+        id,
         1,
-        Number(d.ts),
-        d.amount0,
-        d.amount1,
-        d.sqrtPriceX96.toHexString()
+        ts,
+        sqrtPrice.toNumber(),
+        sqrtPrice.toNumber()
       ])
     }
   }
