@@ -1,8 +1,8 @@
 const { BigNumber } = require("ethers")
 const { AsyncDatabase } = require("promised-sqlite3");
 
-const startTime = 1679525993
-const endTime = 1692722815
+const startTime = 1677000000
+const endTime = 1692800000
 const PARTITIONS = 8
 // 0.28%
 const ESTIMATED_SLIPPAGE = 0.28
@@ -10,7 +10,7 @@ const ESTIMATED_SLIPPAGE = 0.28
 main().then()
 
 function getDate(timestamp) {
-  return new Date(timestamp).toLocaleString()
+  return new Date(timestamp * 1000).toLocaleString()
 }
 
 async function main() {
@@ -53,7 +53,7 @@ async function main() {
 
   for (let output of outputs) {
     console.log(
-      [output.span,
+      [output.span / 60 * 60,
       output.min.toString(),
       output.max.toString(),
       output.average.toString()
