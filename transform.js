@@ -1,51 +1,7 @@
-const {
-  ApolloClient,
-  InMemoryCache,
-  HttpLink,
-  gql
-} = require('@apollo/client')
-const fetch = require('cross-fetch');
 const { BigNumber } = require('ethers');
 const fs = require('fs')
 const { AsyncDatabase } = require("promised-sqlite3");
 
-const UNISWAP_SUBGRAPH_ENDPOINT =
-  'https://api.thegraph.com/subgraphs/name/ianlapham/arbitrum-minimal'
-
-const SWAP_QUERY = gql`
-  query (
-    $first: Int
-    $orderBy: BigInt
-    $orderDirection: String
-    $poolAddress: String
-    $startTime: BigInt
-  ) {
-    swaps(
-      first: $first
-      orderBy: $orderBy
-      orderDirection: $orderDirection
-      where: { pool: $poolAddress, timestamp_gt: $startTime }
-    ) {
-      id
-      amount0
-      amount1
-      sqrtPriceX96
-      timestamp
-    }
-  }
-`
-
-const httpLink = new HttpLink({
-  uri: UNISWAP_SUBGRAPH_ENDPOINT,
-  fetch
-})
-
-const cache = new InMemoryCache();
-
-const client = new ApolloClient({
-  link: httpLink,
-  cache
-})
 
 const startTime = 1675000000
 const poolAddress = '0xc31e54c7a869b9fcbecc14363cf510d1c41fa443'
@@ -89,35 +45,23 @@ async function fetchPriceRanges(startTime) {
 async function start() {
   const db = await AsyncDatabase.open('./db/prices.db')
 
-  await db.run('CREATE TABLE IF NOT EXISTS pools(pool_id integer PRIMARY KEY, address varchar(42))')
-
   await db.run(`
-  CREATE TABLE IF NOT EXISTS prices(
+  CREATE TABLE IF NOT EXISTS price_per_minutes(
     id varchar(96) PRIMARY KEY,
     pool_id integer,
     timestamp integer,
-    amount0 double,
-    amount1 double,
-    sqrt_price varchar(48),
+    min_sqrt_price varchar(48),
+    max_sqrt_price varchar(48),
     FOREIGN KEY (pool_id)
        REFERENCES pools (pool_id) 
   )
   `)
 
-  /*
-  await db.run('INSERT INTO pools(pool_id, address) VALUES(?, ?)', [
-    1,
-    poolAddress
-  ])
-  */
-
-  const row = await db.get('SELECT timestamp from prices ORDER BY timestamp desc LIMIT 1')
-
-  console.log(row)
-
-  let time = row ? row.timestamp : startTime
+  const time = startTime
 
   while (true) {
+    const row = await db.get('SELECT timestamp from prices WHERE ORDER BY timestamp desc LIMIT 1')
+
     const result = await fetchPriceRanges(time)
 
     time = result[0]
@@ -138,6 +82,17 @@ async function start() {
       ])
     }
   }
+}
+
+function createTimestamps(start, span) {
+  const outputs = []
+  const now = (new Date()).getTime() / 1000
+
+  for (let i = start; i < now; i += span) {
+    outputs.push(i)
+  }
+
+  return outputs
 }
 
 start()
