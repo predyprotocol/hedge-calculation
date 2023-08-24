@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -19,6 +20,7 @@
   "homepage": "https://github.com/predyprotocol/hedge-calculation#readme",
   "dependencies": {
     "@apollo/client": "^3.8.1",
+    "ethers": "^6.7.1",
     "promised-sqlite3": "^2.1.0",
     "sqlite3": "^5.1.6"
   }
